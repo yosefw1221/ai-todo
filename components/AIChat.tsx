@@ -222,7 +222,7 @@ export default function AIChat({
 
       {/* Enhanced AI Chat Interface */}
       {showChat && (
-        <div className="fixed bottom-20 right-6 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+        <div className="fixed bottom-20 right-6 w-[450px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
           {/* Chat Header */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white">
             <div className="flex items-center justify-between">
@@ -265,10 +265,10 @@ export default function AIChat({
                   <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {loadingSuggestions ? (
                   // Loading skeleton
-                  Array.from({ length: 4 }).map((_, index) => (
+                  Array.from({ length: 6 }).map((_, index) => (
                     <div key={index} className="p-3 rounded-xl border border-gray-200 animate-pulse">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="w-3 h-3 bg-gray-300 rounded"></div>
@@ -301,7 +301,7 @@ export default function AIChat({
           )}
           
           {/* Chat Messages with Markdown Support */}
-          <div className="h-64 overflow-y-auto p-4 space-y-3">
+          <div className="h-80 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 text-sm py-8">
                 <Sparkles className="mx-auto mb-2 text-gray-400" size={24} />
@@ -351,7 +351,7 @@ export default function AIChat({
           </div>
           
           {/* Chat Input */}
-          <form onSubmit={handleSubmit} className="p-4 border-t border-gray-100 bg-white">
+          <form onSubmit={handleSubmit} className="p-5 border-t border-gray-100 bg-white">
             <div className="flex gap-2">
               <input
                 value={input}
