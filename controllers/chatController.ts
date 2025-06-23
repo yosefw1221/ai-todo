@@ -58,6 +58,7 @@ export class ChatController {
       Todo status: completed (true/false)
 
       Remember: NEVER end your response with just tool calls. Always add a conversational message with markdown formatting explaining what happened!`,
+      
       tools: todoTools,
     });
 
