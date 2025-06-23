@@ -121,4 +121,30 @@ body {
 
 .prose p {
   margin: 0.5rem 0;
+}
+
+/* Input styling fixes for better readability */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  color: #111827 !important; /* Ensure dark text */
+  background-color: white !important; /* Ensure white background */
+  -webkit-text-fill-color: #111827 !important; /* Webkit autofill fix */
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280 !important; /* Ensure readable placeholder */
+  opacity: 1 !important;
+}
+
+/* Autofill styling fix */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: #111827 !important;
 } 
