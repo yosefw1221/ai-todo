@@ -1,12 +1,12 @@
 import { streamText, tool } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
+import { deepseek, AI_CONFIG } from '@/lib/ai-config';
 import { TodoController } from './todoController';
 
 export class ChatController {
   static async handleChatRequest(messages: any[]) {
     const result = await streamText({
-      model: openai('gpt-3.5-turbo'),
+      model: deepseek(AI_CONFIG.model),
       messages,
       system: `You are a helpful AI assistant that manages a todo list. You can create, read, update, and delete todos using the available tools. 
       
