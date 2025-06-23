@@ -4,25 +4,18 @@ import { useState, useEffect } from 'react'
 import { useChat } from 'ai/react'
 import { Check, X, Plus, MessageCircle, Send, Trash2, Edit } from 'lucide-react'
 
-interface Todo {
-  _id: string
-  title: string
-  description?: string
-  completed: boolean
-  priority: 'low' | 'medium' | 'high'
-  createdAt: string
-  updatedAt: string
-}
+import { Todo, TodoFilters } from '@/types/todo'
+import { PRIORITY_COLORS, API_ENDPOINTS } from '@/utils/constants'
 
 export default function TodoApp() {
   const [todos, setTodos] = useState<Todo[]>([])
   const [filter, setFilter] = useState<'all' | 'completed' | 'pending'>('all')
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all')
   const [showChat, setShowChat] = useState(false)
-  const [newTodo, setNewTodo] = useState({ title: '', description: '', priority: 'medium' as const })
+  const [newTodo, setNewTodo] = useState<{ title: string; description: string; priority: 'low' | 'medium' | 'high' }>({ title: '', description: '', priority: 'medium' })
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: '/api/chat',
+    api: API_ENDPOINTS.CHAT,
     onFinish: () => {
       // Refresh todos after AI operations
       fetchTodos()
@@ -35,7 +28,7 @@ export default function TodoApp() {
       if (filter !== 'all') params.append('filter', filter)
       if (priorityFilter !== 'all') params.append('priority', priorityFilter)
       
-      const response = await fetch(`/api/todos?${params}`)
+      const response = await fetch(`${API_ENDPOINTS.TODOS}?${params}`)
       const data = await response.json()
       setTodos(data.todos)
     } catch (error) {
@@ -47,7 +40,7 @@ export default function TodoApp() {
     if (!newTodo.title.trim()) return
 
     try {
-      const response = await fetch('/api/todos', {
+      const response = await fetch(API_ENDPOINTS.TODOS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTodo)
@@ -64,7 +57,7 @@ export default function TodoApp() {
 
   const updateTodo = async (id: string, updates: Partial<Todo>) => {
     try {
-      const response = await fetch(`/api/todos/${id}`, {
+      const response = await fetch(API_ENDPOINTS.TODO_BY_ID(id), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -80,7 +73,7 @@ export default function TodoApp() {
 
   const deleteTodo = async (id: string) => {
     try {
-      const response = await fetch(`/api/todos/${id}`, {
+      const response = await fetch(API_ENDPOINTS.TODO_BY_ID(id), {
         method: 'DELETE'
       })
       
@@ -93,12 +86,7 @@ export default function TodoApp() {
   }
 
   const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'text-red-600 bg-red-50'
-      case 'medium': return 'text-yellow-600 bg-yellow-50'
-      case 'low': return 'text-green-600 bg-green-50'
-      default: return 'text-gray-600 bg-gray-50'
-    }
+    return PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || 'text-gray-600 bg-gray-50'
   }
 
   useEffect(() => {
