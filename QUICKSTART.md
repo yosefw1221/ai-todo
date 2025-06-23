@@ -2,7 +2,7 @@
 Instructions to get started:
 
 1. Set up your environment:
-   - Add your DeepSeek API key and base URL to .env.local
+   - Add your OpenAI API key to .env.local
    - Make sure MongoDB is running (or use MongoDB Atlas)
 
 2. Start the development server:

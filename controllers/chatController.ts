@@ -1,23 +1,20 @@
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
-import { deepseek, AI_CONFIG } from '@/lib/ai-config';
-import { cleanAIResponse } from '@/utils/ai-helpers';
+import { openai, AI_CONFIG } from '@/lib/ai-config';
 import { TodoController } from './todoController';
 
 export class ChatController {
   static async handleChatRequest(messages: any[]) {
     const result = await streamText({
-      model: deepseek(AI_CONFIG.model),
+      model: openai(AI_CONFIG.model),
       messages,
       temperature: AI_CONFIG.temperature,
       maxTokens: AI_CONFIG.maxTokens,
       frequencyPenalty: AI_CONFIG.frequencyPenalty,
       presencePenalty: AI_CONFIG.presencePenalty,
       topP: AI_CONFIG.topP,
-      stop: AI_CONFIG.stop,
+
       system: `You are a helpful AI assistant that manages a todo list. You can create, read, update, and delete todos using the available tools. 
-      
-      IMPORTANT: Respond directly and concisely. Do not show your thinking process or reasoning steps. Provide clear, actionable responses.
       
       When users ask about todos, be conversational and helpful. Always confirm actions you've taken and provide clear feedback about the results.
       
@@ -31,7 +28,7 @@ export class ChatController {
       - "Delete completed tasks" -> use getTodos then deleteTodo for each
       - "What's my high priority tasks?" -> use getTodos with priority filter
       
-      Always be friendly and explain what you're doing when you use tools. Give direct responses without showing internal reasoning.`,
+      Always be friendly and explain what you're doing when you use tools.`,
       tools: {
         createTodo: tool({
           description: 'Create a new todo item',

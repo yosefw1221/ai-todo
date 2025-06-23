@@ -16,7 +16,7 @@ An interactive todo application powered by AI toolcalls that allows users to man
 - **Frontend**: Next.js 14, React 18, TypeScript
 - **Backend**: Next.js API Routes
 - **Database**: MongoDB with Mongoose
-- **AI**: DeepSeek with AI SDK toolcalls
+- **AI**: OpenAI GPT-3.5-turbo with AI SDK toolcalls
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
 
@@ -24,7 +24,7 @@ An interactive todo application powered by AI toolcalls that allows users to man
 
 - Node.js 18+ 
 - MongoDB (local or Atlas)
-- DeepSeek API key and endpoint URL
+- OpenAI API key
 
 ## Installation
 
@@ -44,14 +44,11 @@ An interactive todo application powered by AI toolcalls that allows users to man
    cp .env.example .env.local
    ```
    
-   Edit `.env.local` and add your DeepSeek API credentials:
+   Edit `.env.local` and add your values:
    ```
    MONGODB_URI=mongodb://localhost:27017/ai-todo
-   DEEPSEEK_API_KEY=your_deepseek_api_key_here
-   DEEPSEEK_BASE_URL=your_deepseek_base_url_here
+   OPENAI_API_KEY=your_openai_api_key_here
    ```
-   
-   **Note**: You'll need to provide your DeepSeek API key and base URL to use the AI features.
 
 4. **Start MongoDB** (if running locally):
    ```bash

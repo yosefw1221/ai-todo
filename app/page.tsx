@@ -6,7 +6,6 @@ import { Check, X, Plus, MessageCircle, Send, Trash2, Edit } from 'lucide-react'
 
 import { Todo, TodoFilters } from '@/types/todo'
 import { PRIORITY_COLORS, API_ENDPOINTS } from '@/utils/constants'
-import { cleanAIResponse } from '@/utils/ai-helpers'
 
 export default function TodoApp() {
   const [todos, setTodos] = useState<Todo[]>([])
@@ -21,11 +20,7 @@ export default function TodoApp() {
       // Refresh todos after AI operations
       fetchTodos()
     },
-    // Clean AI responses to remove thinking patterns  
-    experimental_onFunctionCall: async (chatMessages, functionCall) => {
-      // Handle function calls normally
-      return undefined
-    }
+
   })
 
   const fetchTodos = async () => {
@@ -287,10 +282,7 @@ export default function TodoApp() {
                     <div className="text-sm font-medium text-gray-600 mb-1">
                       {message.role === 'user' ? 'You' : 'AI'}
                     </div>
-                    <div className="text-sm">
-                      {/* Clean AI responses before displaying */}
-                      {message.role === 'assistant' ? cleanAIResponse(message.content) : message.content}
-                    </div>
+                    <div className="text-sm">{message.content}</div>
                   </div>
                 ))
               )}
