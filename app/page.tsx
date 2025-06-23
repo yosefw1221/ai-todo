@@ -45,7 +45,7 @@ export default function TodoApp() {
   } = useTodos()
 
   // AI chat functionality
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setInput } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setInput, setMessages } = useChat({
     api: API_ENDPOINTS.CHAT,
     onFinish: () => {
       // Refresh todos after AI operations
@@ -55,6 +55,11 @@ export default function TodoApp() {
       console.error('Chat API error:', error)
     }
   })
+
+  // Clear chat messages
+  const clearChat = () => {
+    setMessages([])
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -112,6 +117,7 @@ export default function TodoApp() {
           handleSubmit={handleSubmit}
           isLoading={isLoading}
           setInput={setInput}
+          onClearChat={clearChat}
           totalTodos={totalTodos}
           completedTodos={completedTodos}
           pendingTodos={pendingTodos}

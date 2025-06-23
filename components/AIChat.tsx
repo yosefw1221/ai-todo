@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { MessageCircle, Send, X, Sparkles, Zap, Plus, CheckCircle, Trash2, AlertCircle, Target, ListTodo, Filter, Clock } from 'lucide-react'
+import { MessageCircle, Send, X, Sparkles, Zap, Plus, CheckCircle, Trash2, AlertCircle, Target, ListTodo, Filter, Clock, RotateCcw } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -14,6 +14,7 @@ interface AIChatProps {
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
   isLoading: boolean
   setInput: (input: string) => void
+  onClearChat: () => void
   totalTodos: number
   completedTodos: number
   pendingTodos: number
@@ -38,6 +39,7 @@ export default function AIChat({
   handleSubmit,
   isLoading,
   setInput,
+  onClearChat,
   totalTodos,
   completedTodos,
   pendingTodos,
@@ -240,12 +242,24 @@ export default function AIChat({
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowChat(false)}
-                className="text-white hover:bg-white hover:bg-opacity-20 p-1 rounded-full transition-all"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                {messages.length > 0 && (
+                  <button
+                    onClick={onClearChat}
+                    className="text-white hover:bg-white hover:bg-opacity-20 p-1 rounded-full transition-all"
+                    title="Clear chat"
+                  >
+                    <RotateCcw size={18} />
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowChat(false)}
+                  className="text-white hover:bg-white hover:bg-opacity-20 p-1 rounded-full transition-all"
+                  title="Close chat"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
           </div>
 

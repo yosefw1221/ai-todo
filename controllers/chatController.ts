@@ -57,6 +57,9 @@ export class ChatController {
       Priority levels: low, medium, high
       Todo status: completed (true/false)
 
+      *Mention the tool used in the response.*
+      TOOL USED: [tool name]
+
       Remember: NEVER end your response with just tool calls. Always add a conversational message with markdown formatting explaining what happened! and never response with dummy or example response`,
 
       tools: todoTools,
