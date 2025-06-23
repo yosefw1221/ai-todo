@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
-import { MessageCircle, Send, X, Sparkles, Zap, Plus, CheckCircle, Trash2, AlertCircle, Target, ListTodo, Filter, Clock, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
+import { MessageCircle, Send, X, Sparkles, Zap, RotateCcw } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -22,13 +22,7 @@ interface AIChatProps {
   filter: string
 }
 
-interface Suggestion {
-  icon: any
-  label: string
-  prompt: string
-  category: string
-  priority: number
-}
+
 
 export default function AIChat({
   showChat,
@@ -46,158 +40,9 @@ export default function AIChat({
   highPriorityTodos,
   filter
 }: AIChatProps) {
-  const handleSuggestionClick = (prompt: string) => {
-    setInput(prompt)
-  }
 
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      create: 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200',
-      update: 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200',
-      delete: 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200',
-      filter: 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200',
-      general: 'bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200',
-      urgent: 'bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-200'
-    }
-    return colors[category as keyof typeof colors] || 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
-  }
 
-  // Dynamic suggestions based on user input and context
-  const [dynamicSuggestions, setDynamicSuggestions] = useState<Suggestion[]>([])
-  const [lastInputForSuggestions, setLastInputForSuggestions] = useState('')
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
 
-  // Generate dynamic suggestions based on current input
-  const generateDynamicSuggestions = useCallback(async (userInput: string) => {
-    if (!userInput.trim() || userInput.length < 3) {
-      // Show basic suggestions when no input
-      setLoadingSuggestions(false)
-      setDynamicSuggestions([
-        {
-          icon: Plus,
-          label: "Add task",
-          prompt: "Create a new todo for me",
-          category: "create",
-          priority: 1
-        },
-        {
-          icon: ListTodo,
-          label: "Show all",
-          prompt: "Show me all my todos",
-          category: "view",
-          priority: 2
-        },
-        {
-          icon: CheckCircle,
-          label: "Complete tasks",
-          prompt: "Help me complete some pending tasks",
-          category: "update",
-          priority: 3
-        }
-      ])
-      return
-    }
-
-    try {
-      setLoadingSuggestions(true)
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: `Generate 4-6 helpful follow-up suggestions based on the user's input. Consider the current todo context:
-              - Total todos: ${totalTodos}
-              - Pending: ${pendingTodos}  
-              - Completed: ${completedTodos}
-              - High priority: ${highPriorityTodos}
-              
-              Return ONLY a JSON array of suggestions in this exact format:
-              [
-                {
-                  "label": "Short action label",
-                  "prompt": "Complete prompt to send",
-                  "category": "create|update|delete|view|general",
-                  "priority": 1
-                }
-              ]
-              
-              Make suggestions specific, actionable, and relevant to the user's input. Vary the categories and keep labels under 20 characters.`
-            },
-            {
-              role: 'user',
-              content: userInput
-            }
-          ]
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.text()
-        // Extract JSON from the response
-        const jsonMatch = data.match(/\[[\s\S]*\]/)
-        if (jsonMatch) {
-          const suggestions = JSON.parse(jsonMatch[0])
-          const formattedSuggestions = suggestions.map((s: any, index: number) => ({
-            icon: getCategoryIcon(s.category),
-            label: s.label,
-            prompt: s.prompt,
-            category: s.category,
-            priority: s.priority || index
-          }))
-          setDynamicSuggestions(formattedSuggestions.slice(0, 6))
-        }
-      }
-    } catch (error) {
-      console.error('Failed to generate suggestions:', error)
-      // Fallback to basic suggestions
-      setDynamicSuggestions([
-        {
-          icon: Plus,
-          label: "Add related task",
-          prompt: `Create a todo related to: ${userInput}`,
-          category: "create",
-          priority: 1
-        }
-      ])
-    } finally {
-      setLoadingSuggestions(false)
-    }
-  }, [totalTodos, pendingTodos, completedTodos, highPriorityTodos])
-
-  // Get icon for category
-  const getCategoryIcon = (category: string) => {
-    const icons = {
-      create: Plus,
-      update: CheckCircle,
-      delete: Trash2,
-      view: ListTodo,
-      general: Sparkles,
-      urgent: AlertCircle,
-      filter: Filter
-    }
-    return icons[category as keyof typeof icons] || Sparkles
-  }
-
-  // Debounced suggestion generation
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (input !== lastInputForSuggestions) {
-        setLastInputForSuggestions(input)
-        generateDynamicSuggestions(input)
-      }
-    }, 500) // 500ms debounce
-
-    return () => clearTimeout(timer)
-  }, [input, generateDynamicSuggestions, lastInputForSuggestions])
-
-  // Initialize with basic suggestions
-  useEffect(() => {
-    if (dynamicSuggestions.length === 0) {
-      generateDynamicSuggestions('')
-    }
-  }, [generateDynamicSuggestions])
 
   return (
     <>
@@ -263,63 +108,14 @@ export default function AIChat({
             </div>
           </div>
 
-          {/* Dynamic Suggestions */}
-          {messages.length === 0 && (
-            <div className="p-5 border-b border-gray-100">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium text-gray-700">
-                  {input.trim() && input.length >= 3
-                    ? `Suggestions for: "${input.slice(0, 30)}${input.length > 30 ? '...' : ''}"`
-                    : totalTodos === 0 
-                      ? "Let's get started" 
-                      : `Smart suggestions`
-                  }
-                </h4>
-                {loadingSuggestions && (
-                  <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                )}
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {loadingSuggestions ? (
-                  // Loading skeleton
-                  Array.from({ length: 6 }).map((_, index) => (
-                    <div key={index} className="p-3 rounded-xl border border-gray-200 animate-pulse">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-3 h-3 bg-gray-300 rounded"></div>
-                        <div className="w-16 h-3 bg-gray-300 rounded"></div>
-                      </div>
-                      <div className="w-full h-2 bg-gray-300 rounded mb-1"></div>
-                      <div className="w-3/4 h-2 bg-gray-300 rounded"></div>
-                    </div>
-                  ))
-                ) : (
-                  dynamicSuggestions.map((suggestion, index) => {
-                    const Icon = suggestion.icon
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => handleSuggestionClick(suggestion.prompt)}
-                        className={`p-3 rounded-xl text-left border transition-all hover:shadow-md ${getCategoryColor(suggestion.category)}`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <Icon size={14} />
-                          <span className="text-xs font-medium">{suggestion.label}</span>
-                        </div>
-                        <p className="text-xs opacity-75 leading-tight line-clamp-2">{suggestion.prompt}</p>
-                      </button>
-                    )
-                  })
-                )}
-              </div>
-            </div>
-          )}
+
           
           {/* Chat Messages with Markdown Support */}
           <div className="h-96 overflow-y-auto p-5 space-y-4">
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 text-sm py-8">
                 <Sparkles className="mx-auto mb-2 text-gray-400" size={24} />
-                <p>Choose a smart suggestion above or type your own message!</p>
+                <p>Start a conversation by typing your message below!</p>
               </div>
             ) : (
               messages.map((message, index) => (
