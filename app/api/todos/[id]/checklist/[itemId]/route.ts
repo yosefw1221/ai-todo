@@ -1,38 +1,17 @@
 import { TodoController } from '@/controllers/todoController';
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const result = await TodoController.getTodoById(params.id);
-
-    if (!result.success) {
-      return new Response(JSON.stringify({ error: result.error }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-}
-
+// Update checklist item
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string; itemId: string } }
 ) {
   try {
     const updateData = await request.json();
-    const result = await TodoController.updateTodo(params.id, updateData);
+
+    const result = await TodoController.updateChecklistItem(params.id, {
+      id: params.itemId,
+      ...updateData,
+    });
 
     if (!result.success) {
       return new Response(JSON.stringify({ error: result.error }), {
@@ -53,16 +32,20 @@ export async function PUT(
   }
 }
 
+// Delete checklist item
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string; itemId: string } }
 ) {
   try {
-    const result = await TodoController.deleteTodo(params.id);
+    const result = await TodoController.removeChecklistItem(
+      params.id,
+      params.itemId
+    );
 
     if (!result.success) {
       return new Response(JSON.stringify({ error: result.error }), {
-        status: 404,
+        status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }

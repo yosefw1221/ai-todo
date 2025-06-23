@@ -61,7 +61,7 @@ export class ChatController {
       Remember: NEVER end your response with just tool calls. Always add a conversational message with markdown formatting explaining what happened!`,
       tools: {
         createTodo: tool({
-          description: 'Create a new todo item',
+          description: 'Create a new todo item with optional checklist',
           parameters: z.object({
             title: z.string().describe('The title of the todo'),
             description: z
@@ -72,12 +72,25 @@ export class ChatController {
               .enum(['low', 'medium', 'high'])
               .default('medium')
               .describe('Priority level of the todo'),
+            checklist: z
+              .array(
+                z.object({
+                  text: z.string().describe('Checklist item text'),
+                  completed: z
+                    .boolean()
+                    .default(false)
+                    .describe('Whether the item is completed'),
+                })
+              )
+              .optional()
+              .describe('Optional checklist items for the todo'),
           }),
-          execute: async ({ title, description, priority }) => {
+          execute: async ({ title, description, priority, checklist }) => {
             const result = await TodoController.createTodo({
               title,
               description,
               priority,
+              checklist,
             });
             return result;
           },

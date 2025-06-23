@@ -2,20 +2,33 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useChat } from 'ai/react'
-import { Check, X, Plus, MessageCircle, Send, Trash2, Edit, Sparkles, Zap, Target, Clock, AlertCircle, CheckCircle, ListTodo, Filter } from 'lucide-react'
+import { Check, X, Plus, MessageCircle, Send, Trash2, Edit, Sparkles, Zap, Target, Clock, AlertCircle, CheckCircle, ListTodo, Filter, Square, CheckSquare, Minus } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 
-import { Todo, TodoFilters } from '@/types/todo'
+import { Todo, TodoFilters, ChecklistItem } from '@/types/todo'
 import { PRIORITY_COLORS, API_ENDPOINTS } from '@/utils/constants'
+import { TodoService } from '@/services/todoService'
 
 export default function TodoApp() {
   const [todos, setTodos] = useState<Todo[]>([])
   const [filter, setFilter] = useState<'all' | 'completed' | 'pending'>('all')
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all')
   const [showChat, setShowChat] = useState(false)
-  const [newTodo, setNewTodo] = useState<{ title: string; description: string; priority: 'low' | 'medium' | 'high' }>({ title: '', description: '', priority: 'medium' })
+  const [newTodo, setNewTodo] = useState<{ 
+    title: string; 
+    description: string; 
+    priority: 'low' | 'medium' | 'high';
+    checklist: { text: string; completed: boolean }[];
+  }>({ 
+    title: '', 
+    description: '', 
+    priority: 'medium',
+    checklist: []
+  })
+  const [newChecklistItem, setNewChecklistItem] = useState('')
+  const [editingChecklistItem, setEditingChecklistItem] = useState<{ todoId: string; itemId: string; text: string } | null>(null)
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, setInput } = useChat({
     api: API_ENDPOINTS.CHAT,
@@ -53,7 +66,8 @@ export default function TodoApp() {
       })
       
       if (response.ok) {
-        setNewTodo({ title: '', description: '', priority: 'medium' })
+        setNewTodo({ title: '', description: '', priority: 'medium', checklist: [] })
+        setNewChecklistItem('')
         fetchTodos()
       }
     } catch (error) {
@@ -88,6 +102,70 @@ export default function TodoApp() {
       }
     } catch (error) {
       console.error('Error deleting todo:', error)
+    }
+  }
+
+  // Checklist operations
+  const addChecklistItemToNew = () => {
+    if (!newChecklistItem.trim()) return
+    
+    setNewTodo(prev => ({
+      ...prev,
+      checklist: [...prev.checklist, { text: newChecklistItem.trim(), completed: false }]
+    }))
+    setNewChecklistItem('')
+  }
+
+  const removeChecklistItemFromNew = (index: number) => {
+    setNewTodo(prev => ({
+      ...prev,
+      checklist: prev.checklist.filter((_, i) => i !== index)
+    }))
+  }
+
+  const toggleChecklistItemInNew = (index: number) => {
+    setNewTodo(prev => ({
+      ...prev,
+      checklist: prev.checklist.map((item, i) => 
+        i === index ? { ...item, completed: !item.completed } : item
+      )
+    }))
+  }
+
+  const addChecklistItemToTodo = async (todoId: string, text: string) => {
+    try {
+      await TodoService.addChecklistItem(todoId, text)
+      fetchTodos()
+    } catch (error) {
+      console.error('Error adding checklist item:', error)
+    }
+  }
+
+  const toggleChecklistItem = async (todoId: string, itemId: string, completed: boolean) => {
+    try {
+      await TodoService.toggleChecklistItem(todoId, itemId, completed)
+      fetchTodos()
+    } catch (error) {
+      console.error('Error toggling checklist item:', error)
+    }
+  }
+
+  const updateChecklistItemText = async (todoId: string, itemId: string, text: string) => {
+    try {
+      await TodoService.editChecklistItemText(todoId, itemId, text)
+      setEditingChecklistItem(null)
+      fetchTodos()
+    } catch (error) {
+      console.error('Error updating checklist item:', error)
+    }
+  }
+
+  const deleteChecklistItem = async (todoId: string, itemId: string) => {
+    try {
+      await TodoService.deleteChecklistItem(todoId, itemId)
+      fetchTodos()
+    } catch (error) {
+      console.error('Error deleting checklist item:', error)
     }
   }
 
@@ -296,6 +374,66 @@ export default function TodoApp() {
                 className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none text-gray-900 bg-white placeholder-gray-500 font-medium shadow-sm"
                 rows={2}
               />
+              
+              {/* Checklist Section */}
+              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <CheckSquare size={16} />
+                    Checklist ({newTodo.checklist.length})
+                  </h4>
+                </div>
+                
+                {/* Add checklist item */}
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    placeholder="Add checklist item..."
+                    value={newChecklistItem}
+                    onChange={(e) => setNewChecklistItem(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addChecklistItemToNew()}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 bg-white"
+                  />
+                  <button
+                    onClick={addChecklistItemToNew}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+                
+                {/* Checklist items */}
+                {newTodo.checklist.length > 0 && (
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {newTodo.checklist.map((item, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                        <button
+                          onClick={() => toggleChecklistItemInNew(index)}
+                          className={`p-1 rounded transition-all ${
+                            item.completed 
+                              ? 'text-green-600 bg-green-100' 
+                              : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                          }`}
+                        >
+                          {item.completed ? <CheckSquare size={14} /> : <Square size={14} />}
+                        </button>
+                        <span className={`flex-1 text-sm ${
+                          item.completed ? 'line-through text-gray-500' : 'text-gray-700'
+                        }`}>
+                          {item.text}
+                        </span>
+                        <button
+                          onClick={() => removeChecklistItemFromNew(index)}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded transition-all"
+                        >
+                          <Minus size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
               <div className="flex gap-3">
                 <select
                   value={newTodo.priority}
@@ -421,6 +559,87 @@ export default function TodoApp() {
                             {todo.description}
                           </p>
                         )}
+                        
+                        {/* Checklist Display */}
+                        {todo.checklist && todo.checklist.length > 0 && (
+                          <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                <CheckSquare size={14} />
+                                Checklist ({todo.checklist.filter(item => item.completed).length}/{todo.checklist.length})
+                              </h4>
+                              <div className="flex gap-1">
+                                <input
+                                  type="text"
+                                  placeholder="Add item..."
+                                  className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-24"
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                                      addChecklistItemToTodo(todo._id, e.currentTarget.value.trim())
+                                      e.currentTarget.value = ''
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {todo.checklist.map((item) => (
+                                <div key={item.id} className="flex items-center gap-2 p-1 hover:bg-gray-100 rounded group">
+                                  <button
+                                    onClick={() => toggleChecklistItem(todo._id, item.id, !item.completed)}
+                                    className={`p-1 rounded transition-all ${
+                                      item.completed 
+                                        ? 'text-green-600 bg-green-100' 
+                                        : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                                    }`}
+                                  >
+                                    {item.completed ? <CheckSquare size={12} /> : <Square size={12} />}
+                                  </button>
+                                  {editingChecklistItem?.todoId === todo._id && editingChecklistItem?.itemId === item.id ? (
+                                    <input
+                                      type="text"
+                                      value={editingChecklistItem.text}
+                                      onChange={(e) => setEditingChecklistItem({
+                                        ...editingChecklistItem,
+                                        text: e.target.value
+                                      })}
+                                      onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                          updateChecklistItemText(todo._id, item.id, editingChecklistItem.text)
+                                        } else if (e.key === 'Escape') {
+                                          setEditingChecklistItem(null)
+                                        }
+                                      }}
+                                      onBlur={() => updateChecklistItemText(todo._id, item.id, editingChecklistItem.text)}
+                                      className="flex-1 text-xs px-1 py-0.5 border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      autoFocus
+                                    />
+                                  ) : (
+                                    <span 
+                                      className={`flex-1 text-xs cursor-pointer ${
+                                        item.completed ? 'line-through text-gray-500' : 'text-gray-700'
+                                      }`}
+                                      onClick={() => setEditingChecklistItem({
+                                        todoId: todo._id,
+                                        itemId: item.id,
+                                        text: item.text
+                                      })}
+                                    >
+                                      {item.text}
+                                    </span>
+                                  )}
+                                  <button
+                                    onClick={() => deleteChecklistItem(todo._id, item.id)}
+                                    className="p-1 text-red-600 hover:bg-red-50 rounded transition-all opacity-0 group-hover:opacity-100"
+                                  >
+                                    <Minus size={10} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="flex items-center gap-3 mt-3">
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(todo.priority)}`}>
                             {todo.priority === 'high' ? '🔴' : todo.priority === 'medium' ? '🟡' : '🟢'} {todo.priority.toUpperCase()}
@@ -428,6 +647,11 @@ export default function TodoApp() {
                           <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
                             {new Date(todo.createdAt).toLocaleDateString()}
                           </span>
+                          {todo.checklist && todo.checklist.length > 0 && (
+                            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                              📋 {todo.checklist.filter(item => item.completed).length}/{todo.checklist.length} done
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

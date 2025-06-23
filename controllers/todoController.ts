@@ -1,11 +1,13 @@
 import { NextRequest } from 'next/server';
 import connectDB from '@/lib/db';
-import Todo, { ITodo } from '@/models/Todo';
+import Todo, { ITodo, IChecklistItem } from '@/models/Todo';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface CreateTodoRequest {
   title: string;
   description?: string;
   priority?: 'low' | 'medium' | 'high';
+  checklist?: { text: string; completed?: boolean }[];
 }
 
 export interface UpdateTodoRequest {
@@ -13,11 +15,18 @@ export interface UpdateTodoRequest {
   description?: string;
   completed?: boolean;
   priority?: 'low' | 'medium' | 'high';
+  checklist?: IChecklistItem[];
 }
 
 export interface TodoFilters {
   filter?: 'all' | 'completed' | 'pending';
   priority?: 'all' | 'low' | 'medium' | 'high';
+}
+
+export interface ChecklistItemUpdate {
+  id: string;
+  text?: string;
+  completed?: boolean;
 }
 
 export class TodoController {
@@ -50,17 +59,26 @@ export class TodoController {
     try {
       await connectDB();
 
-      const { title, description, priority = 'medium' } = todoData;
+      const { title, description, priority = 'medium', checklist = [] } = todoData;
 
       if (!title?.trim()) {
         return { success: false, error: 'Title is required' };
       }
+
+      // Process checklist items
+      const processedChecklist: IChecklistItem[] = checklist.map(item => ({
+        id: uuidv4(),
+        text: item.text.trim(),
+        completed: item.completed || false,
+        createdAt: new Date(),
+      }));
 
       const todo = new Todo({
         title: title.trim(),
         description: description?.trim(),
         priority,
         completed: false,
+        checklist: processedChecklist,
       });
 
       await todo.save();
@@ -88,6 +106,8 @@ export class TodoController {
         cleanUpdateData.completed = updateData.completed;
       if (updateData.priority !== undefined)
         cleanUpdateData.priority = updateData.priority;
+      if (updateData.checklist !== undefined)
+        cleanUpdateData.checklist = updateData.checklist;
 
       const todo = await Todo.findByIdAndUpdate(id, cleanUpdateData, {
         new: true,
@@ -102,6 +122,96 @@ export class TodoController {
     } catch (error) {
       console.error('Error updating todo:', error);
       return { success: false, error: 'Failed to update todo' };
+    }
+  }
+
+  static async addChecklistItem(todoId: string, itemText: string) {
+    try {
+      await connectDB();
+
+      if (!todoId || !itemText?.trim()) {
+        return { success: false, error: 'Todo ID and item text are required' };
+      }
+
+      const newItem: IChecklistItem = {
+        id: uuidv4(),
+        text: itemText.trim(),
+        completed: false,
+        createdAt: new Date(),
+      };
+
+      const todo = await Todo.findByIdAndUpdate(
+        todoId,
+        { $push: { checklist: newItem } },
+        { new: true, runValidators: true }
+      );
+
+      if (!todo) {
+        return { success: false, error: 'Todo not found' };
+      }
+
+      return { success: true, todo: todo.toObject(), addedItem: newItem };
+    } catch (error) {
+      console.error('Error adding checklist item:', error);
+      return { success: false, error: 'Failed to add checklist item' };
+    }
+  }
+
+  static async updateChecklistItem(todoId: string, itemUpdate: ChecklistItemUpdate) {
+    try {
+      await connectDB();
+
+      if (!todoId || !itemUpdate.id) {
+        return { success: false, error: 'Todo ID and item ID are required' };
+      }
+
+      const updateFields: any = {};
+      if (itemUpdate.text !== undefined) {
+        updateFields['checklist.$.text'] = itemUpdate.text.trim();
+      }
+      if (itemUpdate.completed !== undefined) {
+        updateFields['checklist.$.completed'] = itemUpdate.completed;
+      }
+
+      const todo = await Todo.findOneAndUpdate(
+        { _id: todoId, 'checklist.id': itemUpdate.id },
+        { $set: updateFields },
+        { new: true, runValidators: true }
+      );
+
+      if (!todo) {
+        return { success: false, error: 'Todo or checklist item not found' };
+      }
+
+      return { success: true, todo: todo.toObject() };
+    } catch (error) {
+      console.error('Error updating checklist item:', error);
+      return { success: false, error: 'Failed to update checklist item' };
+    }
+  }
+
+  static async removeChecklistItem(todoId: string, itemId: string) {
+    try {
+      await connectDB();
+
+      if (!todoId || !itemId) {
+        return { success: false, error: 'Todo ID and item ID are required' };
+      }
+
+      const todo = await Todo.findByIdAndUpdate(
+        todoId,
+        { $pull: { checklist: { id: itemId } } },
+        { new: true, runValidators: true }
+      );
+
+      if (!todo) {
+        return { success: false, error: 'Todo not found' };
+      }
+
+      return { success: true, todo: todo.toObject() };
+    } catch (error) {
+      console.error('Error removing checklist item:', error);
+      return { success: false, error: 'Failed to remove checklist item' };
     }
   }
 
