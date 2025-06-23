@@ -4,9 +4,12 @@ import { todoTools } from '@/tools';
 
 export class ChatController {
   static async handleChatRequest(messages: any[]) {
+    // Truncate messages to prevent context length issues
+    const truncatedMessages = this.truncateMessages(messages, 12000); // Keep under 12k tokens for safety
+
     const result = await streamText({
       model: openai(AI_CONFIG.model as any) as LanguageModelV1,
-      messages,
+      messages: truncatedMessages,
       temperature: AI_CONFIG.temperature,
       maxTokens: AI_CONFIG.maxTokens,
       frequencyPenalty: AI_CONFIG.frequencyPenalty,
@@ -58,10 +61,50 @@ export class ChatController {
       Todo status: completed (true/false)
 
       Remember: NEVER end your response with just tool calls. Always add a conversational message with markdown formatting explaining what happened!`,
-      
+
       tools: todoTools,
     });
 
     return result.toDataStreamResponse();
+  }
+
+  private static truncateMessages(messages: any[], maxTokens: number): any[] {
+    // Simple token estimation: ~4 characters per token
+    const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
+
+    let totalTokens = 0;
+    const truncatedMessages = [];
+
+    // Always keep the system message if it exists
+    if (messages.length > 0 && messages[0].role === 'system') {
+      truncatedMessages.push(messages[0]);
+      totalTokens += estimateTokens(JSON.stringify(messages[0]));
+    }
+
+    // Add messages from the end (most recent first) until we hit the limit
+    for (
+      let i = messages.length - 1;
+      i >= (messages[0]?.role === 'system' ? 1 : 0);
+      i--
+    ) {
+      const messageTokens = estimateTokens(JSON.stringify(messages[i]));
+
+      if (totalTokens + messageTokens > maxTokens) {
+        break;
+      }
+
+      totalTokens += messageTokens;
+      truncatedMessages.unshift(messages[i]);
+    }
+
+    // Ensure we keep at least the last user message
+    if (truncatedMessages.length < 2 && messages.length > 1) {
+      const lastMessage = messages[messages.length - 1];
+      if (!truncatedMessages.includes(lastMessage)) {
+        truncatedMessages.push(lastMessage);
+      }
+    }
+
+    return truncatedMessages;
   }
 }
