@@ -27,7 +27,6 @@ export const createTodoTool = tool({
       .optional()
       .describe('Optional checklist items for the todo'),
   }),
-  
   execute: async ({ title, description, priority, checklist }) => {
     const result = await TodoController.createTodo({
       title,

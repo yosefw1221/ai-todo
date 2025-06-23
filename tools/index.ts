@@ -15,6 +15,7 @@ import { deleteTodoTool } from './deleteTodo';
 import { deleteMultipleTodosTool } from './deleteMultipleTodos';
 import { getTodoChecklistsTool } from './getTodoChecklists';
 import { updateTodoChecklistItemTool } from './updateTodoChecklistItem';
+import { calculatorTool } from './calculator';
 
 // Convenience object for importing all tools at once
 export const todoTools = {
@@ -25,4 +26,5 @@ export const todoTools = {
   deleteMultipleTodos: deleteMultipleTodosTool,
   getTodoChecklists: getTodoChecklistsTool,
   updateTodoChecklistItem: updateTodoChecklistItemTool,
+  calculator: calculatorTool,
 };
