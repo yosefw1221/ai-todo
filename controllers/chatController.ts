@@ -1,4 +1,4 @@
-import { streamText, tool } from 'ai';
+import { LanguageModelV1, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { openai, AI_CONFIG } from '@/lib/ai-config';
 import { TodoController } from './todoController';
@@ -6,7 +6,7 @@ import { TodoController } from './todoController';
 export class ChatController {
   static async handleChatRequest(messages: any[]) {
     const result = await streamText({
-      model: openai(AI_CONFIG.model as any),
+      model: openai(AI_CONFIG.model) as LanguageModelV1,
       messages,
       temperature: AI_CONFIG.temperature,
       maxTokens: AI_CONFIG.maxTokens,

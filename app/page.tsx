@@ -20,7 +20,9 @@ export default function TodoApp() {
       // Refresh todos after AI operations
       fetchTodos()
     },
-
+    onError: (error) => {
+      console.error('Chat API error:', error)
+    }
   })
 
   const fetchTodos = async () => {
