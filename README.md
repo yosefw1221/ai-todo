@@ -84,12 +84,17 @@ An interactive todo application powered by AI toolcalls that allows users to man
 
 ## AI Toolcalls
 
-The chatbot can perform the following operations:
+The chatbot uses a modular tool system with the following operations:
 
-- **createTodo**: Create new todo items
+- **createTodo**: Create new todo items with checklist support
 - **getTodos**: Retrieve and filter existing todos
 - **updateTodo**: Modify todo properties (title, description, status, priority)
-- **deleteTodo**: Remove todo items
+- **deleteTodo**: Remove individual todo items
+- **deleteMultipleTodos**: Bulk deletion of multiple todos
+- **getTodoChecklists**: Retrieve checklist items for a specific todo
+- **updateTodoChecklistItem**: Update individual checklist items
+
+All tools are organized in the `tools/` directory for better maintainability and code organization.
 
 ## API Endpoints
 
@@ -113,8 +118,17 @@ ai-todo-app/
 │   ├── layout.tsx                 # Root layout with DB initialization
 │   └── page.tsx                   # Main application page
 ├── controllers/
-│   ├── chatController.ts          # AI chat business logic with toolcalls
+│   ├── chatController.ts          # AI chat business logic (imports from tools/)
 │   └── todoController.ts          # Todo business logic and database operations
+├── tools/                         # AI tool definitions (modular structure)
+│   ├── createTodo.ts              # Create todo with checklist support
+│   ├── getTodos.ts                # Retrieve todos with filtering
+│   ├── updateTodo.ts              # Update todo properties
+│   ├── deleteTodo.ts              # Delete single todo
+│   ├── deleteMultipleTodos.ts     # Bulk todo deletion
+│   ├── getTodoChecklists.ts       # Get checklist items
+│   ├── updateTodoChecklistItem.ts # Update checklist items
+│   └── index.ts                   # Tool exports and convenience object
 ├── lib/
 │   └── db.ts                      # Database connection with startup initialization
 ├── models/
