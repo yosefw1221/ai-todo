@@ -6,6 +6,7 @@ export { deleteTodoTool } from './deleteTodo';
 export { deleteMultipleTodosTool } from './deleteMultipleTodos';
 export { getTodoChecklistsTool } from './getTodoChecklists';
 export { updateTodoChecklistItemTool } from './updateTodoChecklistItem';
+export { googlesearchTool } from './googlesearch';
 
 // Import all tools for the convenience object
 import { createTodoTool } from './createTodo';
@@ -16,6 +17,7 @@ import { deleteMultipleTodosTool } from './deleteMultipleTodos';
 import { getTodoChecklistsTool } from './getTodoChecklists';
 import { updateTodoChecklistItemTool } from './updateTodoChecklistItem';
 import { calculatorTool } from './calculator';
+import { googlesearchTool } from './googlesearch';
 
 // Convenience object for importing all tools at once
 export const todoTools = {
@@ -27,4 +29,5 @@ export const todoTools = {
   getTodoChecklists: getTodoChecklistsTool,
   updateTodoChecklistItem: updateTodoChecklistItemTool,
   calculator: calculatorTool,
+  googleSearch: googlesearchTool,
 };
