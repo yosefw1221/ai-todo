@@ -222,9 +222,9 @@ export default function AIChat({
 
       {/* Enhanced AI Chat Interface */}
       {showChat && (
-        <div className="fixed bottom-20 right-6 w-[450px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+        <div className="fixed bottom-20 right-6 w-[520px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
           {/* Chat Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-5 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
@@ -251,7 +251,7 @@ export default function AIChat({
 
           {/* Dynamic Suggestions */}
           {messages.length === 0 && (
-            <div className="p-4 border-b border-gray-100">
+            <div className="p-5 border-b border-gray-100">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-medium text-gray-700">
                   {input.trim() && input.length >= 3
@@ -301,7 +301,7 @@ export default function AIChat({
           )}
           
           {/* Chat Messages with Markdown Support */}
-          <div className="h-80 overflow-y-auto p-4 space-y-3">
+          <div className="h-96 overflow-y-auto p-5 space-y-4">
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 text-sm py-8">
                 <Sparkles className="mx-auto mb-2 text-gray-400" size={24} />
@@ -351,20 +351,20 @@ export default function AIChat({
           </div>
           
           {/* Chat Input */}
-          <form onSubmit={handleSubmit} className="p-5 border-t border-gray-100 bg-white">
-            <div className="flex gap-2">
+          <form onSubmit={handleSubmit} className="p-6 border-t border-gray-100 bg-white">
+            <div className="flex gap-3">
               <input
                 value={input}
                 onChange={handleInputChange}
                 placeholder="Ask me about your todos..."
-                className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 bg-white placeholder-gray-500 font-medium shadow-sm"
+                className="flex-1 px-5 py-4 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base text-gray-900 bg-white placeholder-gray-500 font-medium shadow-sm"
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                className="px-5 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
               >
-                <Send size={16} />
+                <Send size={18} />
               </button>
             </div>
           </form>
