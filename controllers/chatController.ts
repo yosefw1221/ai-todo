@@ -6,7 +6,7 @@ import { TodoController } from './todoController';
 export class ChatController {
   static async handleChatRequest(messages: any[]) {
     const result = await streamText({
-      model: openai(AI_CONFIG.model),
+      model: openai(AI_CONFIG.model as any),
       messages,
       temperature: AI_CONFIG.temperature,
       maxTokens: AI_CONFIG.maxTokens,
@@ -21,12 +21,22 @@ export class ChatController {
       Priority levels are: low, medium, high
       Todo status can be: completed (true/false)
       
+      IMPORTANT DELETION WORKFLOW:
+      To delete todos, you MUST:
+      1. First use getTodos to find the todos and their IDs
+      2. Then use deleteTodo with the specific todo ID(s)
+      3. Always confirm what was deleted
+      
       Examples of what you can help with:
       - "Add a task" -> use createTodo
       - "Show my todos" -> use getTodos 
       - "Mark X as done" -> use updateTodo
-      - "Delete completed tasks" -> use getTodos then deleteTodo for each
+      - "Delete completed tasks" -> use getTodos with filter="completed", then deleteTodo for each ID
+      - "Delete the grocery todo" -> use getTodos to find it, then deleteTodo with the ID
+      - "Remove all high priority tasks" -> use getTodos with priority="high", then deleteTodo for each ID
       - "What's my high priority tasks?" -> use getTodos with priority filter
+      
+      When deleting multiple todos, delete them one by one and report progress.
       
       Always be friendly and explain what you're doing when you use tools.`,
       tools: {
@@ -54,7 +64,8 @@ export class ChatController {
         }),
 
         getTodos: tool({
-          description: 'Get all todos with optional filtering',
+          description:
+            'Get all todos with optional filtering. Use this first when you need to delete todos to get their IDs.',
           parameters: z.object({
             filter: z
               .enum(['all', 'completed', 'pending'])
@@ -66,10 +77,16 @@ export class ChatController {
               .describe('Filter todos by priority'),
           }),
           execute: async ({ filter, priority }) => {
+            console.log(
+              `AI fetching todos with filter: ${filter}, priority: ${priority}`
+            );
             const result = await TodoController.getAllTodos({
               filter,
               priority,
             });
+            console.log(
+              `Found ${result.success ? result.todos?.length || 0 : 0} todos`
+            );
             return result;
           },
         }),
@@ -104,13 +121,65 @@ export class ChatController {
         }),
 
         deleteTodo: tool({
-          description: 'Delete a todo item',
+          description:
+            'Delete a specific todo item by its ID. You must first use getTodos to find the todo ID before deleting.',
           parameters: z.object({
-            id: z.string().describe('The ID of the todo to delete'),
+            id: z
+              .string()
+              .describe(
+                'The exact ID of the todo to delete (get this from getTodos first)'
+              ),
           }),
           execute: async ({ id }) => {
+            console.log(`AI attempting to delete todo with ID: ${id}`);
             const result = await TodoController.deleteTodo(id);
+            console.log(`Delete result:`, result);
             return result;
+          },
+        }),
+
+        deleteMultipleTodos: tool({
+          description:
+            'Delete multiple todos at once by their IDs. Use this for bulk deletion.',
+          parameters: z.object({
+            ids: z
+              .array(z.string())
+              .describe(
+                'Array of todo IDs to delete (get these from getTodos first)'
+              ),
+          }),
+          execute: async ({ ids }) => {
+            console.log(
+              `AI attempting to delete multiple todos with IDs: ${ids.join(
+                ', '
+              )}`
+            );
+            const results = [];
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const id of ids) {
+              const result = await TodoController.deleteTodo(id);
+              results.push({ id, result });
+              if (result.success) {
+                successCount++;
+              } else {
+                failCount++;
+              }
+            }
+
+            const summary = {
+              success: failCount === 0,
+              message: `Deleted ${successCount} todos successfully${
+                failCount > 0 ? `, ${failCount} failed` : ''
+              }`,
+              details: results,
+              successCount,
+              failCount,
+            };
+
+            console.log(`Bulk delete result:`, summary);
+            return summary;
           },
         }),
       },
