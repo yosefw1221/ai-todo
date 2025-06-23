@@ -1,51 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useChat } from 'ai/react'
-import { Check, X, Plus, MessageCircle, Send, Trash2, Edit, Sparkles, Zap, Target, Clock } from 'lucide-react'
+import { Check, X, Plus, MessageCircle, Send, Trash2, Edit, Sparkles, Zap, Target, Clock, AlertCircle, CheckCircle, ListTodo, Filter } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 
 import { Todo, TodoFilters } from '@/types/todo'
 import { PRIORITY_COLORS, API_ENDPOINTS } from '@/utils/constants'
-
-// Chat suggestions for better UX
-const CHAT_SUGGESTIONS = [
-  {
-    icon: Plus,
-    label: "Add new task",
-    prompt: "Create a new todo for me",
-    category: "create"
-  },
-  {
-    icon: Check,
-    label: "Complete tasks",
-    prompt: "Mark my pending tasks as completed",
-    category: "update"
-  },
-  {
-    icon: Trash2,
-    label: "Delete completed",
-    prompt: "Delete all completed todos",
-    category: "delete"
-  },
-  {
-    icon: Target,
-    label: "High priority",
-    prompt: "Show me all high priority tasks",
-    category: "filter"
-  },
-  {
-    icon: Clock,
-    label: "Today's tasks",
-    prompt: "What should I focus on today?",
-    category: "general"
-  },
-  {
-    icon: Sparkles,
-    label: "Organize todos",
-    prompt: "Help me organize my todo list better",
-    category: "general"
-  }
-]
 
 export default function TodoApp() {
   const [todos, setTodos] = useState<Todo[]>([])
@@ -138,14 +101,143 @@ export default function TodoApp() {
 
   const getCategoryColor = (category: string) => {
     const colors = {
-      create: 'bg-green-100 text-green-700 border-green-200',
-      update: 'bg-blue-100 text-blue-700 border-blue-200',
-      delete: 'bg-red-100 text-red-700 border-red-200',
-      filter: 'bg-purple-100 text-purple-700 border-purple-200',
-      general: 'bg-yellow-100 text-yellow-700 border-yellow-200'
+      create: 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200',
+      update: 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200',
+      delete: 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200',
+      filter: 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200',
+      general: 'bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200',
+      urgent: 'bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-200'
     }
-    return colors[category as keyof typeof colors] || 'bg-gray-100 text-gray-700 border-gray-200'
+    return colors[category as keyof typeof colors] || 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
   }
+
+  // Dynamic suggestions based on current state
+  const dynamicSuggestions = useMemo(() => {
+    const totalTodos = todos.length
+    const completedTodos = todos.filter(todo => todo.completed).length
+    const pendingTodos = totalTodos - completedTodos
+    const highPriorityTodos = todos.filter(todo => todo.priority === 'high' && !todo.completed).length
+    const mediumPriorityTodos = todos.filter(todo => todo.priority === 'medium' && !todo.completed).length
+    const lowPriorityTodos = todos.filter(todo => todo.priority === 'low' && !todo.completed).length
+    
+    const suggestions = []
+
+    // Always show create option
+    suggestions.push({
+      icon: Plus,
+      label: "Add new task",
+      prompt: "Create a new todo for me",
+      category: "create",
+      priority: 1
+    })
+
+    // If there are pending todos, suggest completion actions
+    if (pendingTodos > 0) {
+      suggestions.push({
+        icon: CheckCircle,
+        label: `Complete ${pendingTodos} pending`,
+        prompt: `Help me complete some of my ${pendingTodos} pending tasks`,
+        category: "update",
+        priority: 2
+      })
+    }
+
+    // If there are completed todos, suggest cleanup
+    if (completedTodos > 0) {
+      suggestions.push({
+        icon: Trash2,
+        label: `Clean ${completedTodos} completed`,
+        prompt: `Delete all ${completedTodos} completed todos`,
+        category: "delete",
+        priority: 3
+      })
+    }
+
+    // High priority alerts
+    if (highPriorityTodos > 0) {
+      suggestions.push({
+        icon: AlertCircle,
+        label: `${highPriorityTodos} urgent tasks!`,
+        prompt: `Show me my ${highPriorityTodos} high priority tasks that need attention`,
+        category: "urgent",
+        priority: 0 // Highest priority
+      })
+    }
+
+    // If lots of todos, suggest organization
+    if (totalTodos > 5) {
+      suggestions.push({
+        icon: Target,
+        label: "Organize tasks",
+        prompt: `Help me organize and prioritize my ${totalTodos} todos`,
+        category: "general",
+        priority: 4
+      })
+    }
+
+    // If empty or few todos, suggest planning
+    if (totalTodos === 0) {
+      suggestions.push({
+        icon: Sparkles,
+        label: "Plan your day",
+        prompt: "Help me plan some productive tasks for today",
+        category: "create",
+        priority: 1
+      })
+    } else if (totalTodos < 3) {
+      suggestions.push({
+        icon: ListTodo,
+        label: "Add more tasks",
+        prompt: "Suggest some productive tasks I could add to my list",
+        category: "create",
+        priority: 2
+      })
+    }
+
+    // Filter suggestions based on current filter
+    if (filter === 'all' && totalTodos > 0) {
+      suggestions.push({
+        icon: Filter,
+        label: "Focus view",
+        prompt: "Show me a focused view of my most important tasks",
+        category: "filter",
+        priority: 5
+      })
+    }
+
+    // Time-based suggestions
+    const hour = new Date().getHours()
+    if (hour < 12 && pendingTodos > 0) {
+      suggestions.push({
+        icon: Clock,
+        label: "Morning focus",
+        prompt: "What should I focus on this morning?",
+        category: "general",
+        priority: 3
+      })
+    } else if (hour >= 12 && hour < 17 && pendingTodos > 0) {
+      suggestions.push({
+        icon: Clock,
+        label: "Afternoon priorities",
+        prompt: "What are my afternoon priorities?",
+        category: "general",
+        priority: 3
+      })
+    } else if (hour >= 17 && pendingTodos > 0) {
+      suggestions.push({
+        icon: Clock,
+        label: "End of day review",
+        prompt: "Help me review what I've accomplished today",
+        category: "general",
+        priority: 3
+      })
+    }
+
+    // Sort by priority and return top 6
+    return suggestions
+      .sort((a, b) => a.priority - b.priority)
+      .slice(0, 6)
+  }, [todos, filter])
 
   useEffect(() => {
     fetchTodos()
@@ -358,7 +450,10 @@ export default function TodoApp() {
             <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3 max-w-xs">
               <p className="text-sm text-gray-600">
                 <Zap className="inline w-4 h-4 text-blue-500 mr-1" />
-                Need help? Ask your AI assistant!
+                {highPriorityTodos > 0 
+                  ? `${highPriorityTodos} urgent tasks need attention!`
+                  : `AI assistant ready to help!`
+                }
               </p>
             </div>
           )}
@@ -382,7 +477,12 @@ export default function TodoApp() {
                   </div>
                   <div>
                     <h3 className="font-semibold">AI Assistant</h3>
-                    <p className="text-sm opacity-90">Ready to help with your todos</p>
+                    <p className="text-sm opacity-90">
+                      {totalTodos === 0 
+                        ? "Ready to help you get organized" 
+                        : `Managing ${totalTodos} todos`
+                      }
+                    </p>
                   </div>
                 </div>
                 <button
@@ -394,12 +494,17 @@ export default function TodoApp() {
               </div>
             </div>
 
-            {/* Suggestions */}
+            {/* Dynamic Suggestions */}
             {messages.length === 0 && (
               <div className="p-4 border-b border-gray-100">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Quick Actions</h4>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">
+                  {totalTodos === 0 
+                    ? "Let's get started" 
+                    : `Smart suggestions for your ${totalTodos} todos`
+                  }
+                </h4>
                 <div className="grid grid-cols-2 gap-2">
-                  {CHAT_SUGGESTIONS.map((suggestion, index) => {
+                  {dynamicSuggestions.map((suggestion, index) => {
                     const Icon = suggestion.icon
                     return (
                       <button
@@ -411,7 +516,7 @@ export default function TodoApp() {
                           <Icon size={14} />
                           <span className="text-xs font-medium">{suggestion.label}</span>
                         </div>
-                        <p className="text-xs opacity-75 leading-tight">{suggestion.prompt}</p>
+                        <p className="text-xs opacity-75 leading-tight line-clamp-2">{suggestion.prompt}</p>
                       </button>
                     )
                   })}
@@ -419,12 +524,12 @@ export default function TodoApp() {
               </div>
             )}
             
-            {/* Chat Messages */}
+            {/* Chat Messages with Markdown Support */}
             <div className="h-64 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 ? (
                 <div className="text-center text-gray-500 text-sm py-8">
                   <Sparkles className="mx-auto mb-2 text-gray-400" size={24} />
-                  <p>Choose a quick action above or type your own message!</p>
+                  <p>Choose a smart suggestion above or type your own message!</p>
                 </div>
               ) : (
                 messages.map((message, index) => (
@@ -439,7 +544,20 @@ export default function TodoApp() {
                           : 'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      <div className="text-sm leading-relaxed">{message.content}</div>
+                      <div className="text-sm leading-relaxed">
+                        {message.role === 'user' ? (
+                          message.content
+                        ) : (
+                          <div className="prose prose-sm max-w-none prose-headings:text-gray-800 prose-p:text-gray-700 prose-strong:text-gray-800 prose-code:bg-gray-200 prose-code:text-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-ul:text-gray-700 prose-ol:text-gray-700">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeHighlight]}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
