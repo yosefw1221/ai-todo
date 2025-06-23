@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { MessageCircle, Send, X, Sparkles, Zap, Plus, CheckCircle, Trash2, AlertCircle, Target, ListTodo, Filter, Clock } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -60,126 +60,142 @@ export default function AIChat({
     return colors[category as keyof typeof colors] || 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
   }
 
-  // Dynamic suggestions based on current state
-  const dynamicSuggestions = useMemo(() => {
-    const suggestions: Suggestion[] = []
+  // Dynamic suggestions based on user input and context
+  const [dynamicSuggestions, setDynamicSuggestions] = useState<Suggestion[]>([])
+  const [lastInputForSuggestions, setLastInputForSuggestions] = useState('')
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
 
-    // Always show create option
-    suggestions.push({
-      icon: Plus,
-      label: "Add new task",
-      prompt: "Create a new todo for me",
-      category: "create",
-      priority: 1
-    })
-
-    // If there are pending todos, suggest completion actions
-    if (pendingTodos > 0) {
-      suggestions.push({
-        icon: CheckCircle,
-        label: `Complete ${pendingTodos} pending`,
-        prompt: `Help me complete some of my ${pendingTodos} pending tasks`,
-        category: "update",
-        priority: 2
-      })
+  // Generate dynamic suggestions based on current input
+  const generateDynamicSuggestions = useCallback(async (userInput: string) => {
+    if (!userInput.trim() || userInput.length < 3) {
+      // Show basic suggestions when no input
+      setLoadingSuggestions(false)
+      setDynamicSuggestions([
+        {
+          icon: Plus,
+          label: "Add task",
+          prompt: "Create a new todo for me",
+          category: "create",
+          priority: 1
+        },
+        {
+          icon: ListTodo,
+          label: "Show all",
+          prompt: "Show me all my todos",
+          category: "view",
+          priority: 2
+        },
+        {
+          icon: CheckCircle,
+          label: "Complete tasks",
+          prompt: "Help me complete some pending tasks",
+          category: "update",
+          priority: 3
+        }
+      ])
+      return
     }
 
-    // If there are completed todos, suggest cleanup
-    if (completedTodos > 0) {
-      suggestions.push({
-        icon: Trash2,
-        label: `Clean ${completedTodos} completed`,
-        prompt: `Delete all ${completedTodos} completed todos`,
-        category: "delete",
-        priority: 3
+    try {
+      setLoadingSuggestions(true)
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: `Generate 4-6 helpful follow-up suggestions based on the user's input. Consider the current todo context:
+              - Total todos: ${totalTodos}
+              - Pending: ${pendingTodos}  
+              - Completed: ${completedTodos}
+              - High priority: ${highPriorityTodos}
+              
+              Return ONLY a JSON array of suggestions in this exact format:
+              [
+                {
+                  "label": "Short action label",
+                  "prompt": "Complete prompt to send",
+                  "category": "create|update|delete|view|general",
+                  "priority": 1
+                }
+              ]
+              
+              Make suggestions specific, actionable, and relevant to the user's input. Vary the categories and keep labels under 20 characters.`
+            },
+            {
+              role: 'user',
+              content: userInput
+            }
+          ]
+        })
       })
-    }
 
-    // High priority alerts
-    if (highPriorityTodos > 0) {
-      suggestions.push({
-        icon: AlertCircle,
-        label: `${highPriorityTodos} urgent tasks!`,
-        prompt: `Show me my ${highPriorityTodos} high priority tasks that need attention`,
-        category: "urgent",
-        priority: 0 // Highest priority
-      })
+      if (response.ok) {
+        const data = await response.text()
+        // Extract JSON from the response
+        const jsonMatch = data.match(/\[[\s\S]*\]/)
+        if (jsonMatch) {
+          const suggestions = JSON.parse(jsonMatch[0])
+          const formattedSuggestions = suggestions.map((s: any, index: number) => ({
+            icon: getCategoryIcon(s.category),
+            label: s.label,
+            prompt: s.prompt,
+            category: s.category,
+            priority: s.priority || index
+          }))
+          setDynamicSuggestions(formattedSuggestions.slice(0, 6))
+        }
+      }
+    } catch (error) {
+      console.error('Failed to generate suggestions:', error)
+      // Fallback to basic suggestions
+      setDynamicSuggestions([
+        {
+          icon: Plus,
+          label: "Add related task",
+          prompt: `Create a todo related to: ${userInput}`,
+          category: "create",
+          priority: 1
+        }
+      ])
+    } finally {
+      setLoadingSuggestions(false)
     }
+  }, [totalTodos, pendingTodos, completedTodos, highPriorityTodos])
 
-    // If lots of todos, suggest organization
-    if (totalTodos > 5) {
-      suggestions.push({
-        icon: Target,
-        label: "Organize tasks",
-        prompt: `Help me organize and prioritize my ${totalTodos} todos`,
-        category: "general",
-        priority: 4
-      })
+  // Get icon for category
+  const getCategoryIcon = (category: string) => {
+    const icons = {
+      create: Plus,
+      update: CheckCircle,
+      delete: Trash2,
+      view: ListTodo,
+      general: Sparkles,
+      urgent: AlertCircle,
+      filter: Filter
     }
+    return icons[category as keyof typeof icons] || Sparkles
+  }
 
-    // If empty or few todos, suggest planning
-    if (totalTodos === 0) {
-      suggestions.push({
-        icon: Sparkles,
-        label: "Plan your day",
-        prompt: "Help me plan some productive tasks for today",
-        category: "create",
-        priority: 1
-      })
-    } else if (totalTodos < 3) {
-      suggestions.push({
-        icon: ListTodo,
-        label: "Add more tasks",
-        prompt: "Suggest some productive tasks I could add to my list",
-        category: "create",
-        priority: 2
-      })
+  // Debounced suggestion generation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (input !== lastInputForSuggestions) {
+        setLastInputForSuggestions(input)
+        generateDynamicSuggestions(input)
+      }
+    }, 500) // 500ms debounce
+
+    return () => clearTimeout(timer)
+  }, [input, generateDynamicSuggestions, lastInputForSuggestions])
+
+  // Initialize with basic suggestions
+  useEffect(() => {
+    if (dynamicSuggestions.length === 0) {
+      generateDynamicSuggestions('')
     }
-
-    // Filter suggestions based on current filter
-    if (filter === 'all' && totalTodos > 0) {
-      suggestions.push({
-        icon: Filter,
-        label: "Focus view",
-        prompt: "Show me a focused view of my most important tasks",
-        category: "filter",
-        priority: 5
-      })
-    }
-
-    // Time-based suggestions
-    const hour = new Date().getHours()
-    if (hour < 12 && pendingTodos > 0) {
-      suggestions.push({
-        icon: Clock,
-        label: "Morning focus",
-        prompt: "What should I focus on this morning?",
-        category: "general",
-        priority: 3
-      })
-    } else if (hour >= 12 && hour < 17 && pendingTodos > 0) {
-      suggestions.push({
-        icon: Clock,
-        label: "Afternoon priorities",
-        prompt: "What are my afternoon priorities?",
-        category: "general",
-        priority: 3
-      })
-    } else if (hour >= 17 && pendingTodos > 0) {
-      suggestions.push({
-        icon: Clock,
-        label: "End of day review",
-        prompt: "Help me review what I've accomplished today",
-        category: "general",
-        priority: 3
-      })
-    }
-
-    // Sort by priority and return top 6
-    return suggestions
-      .sort((a, b) => a.priority - b.priority)
-      .slice(0, 6)
-  }, [totalTodos, completedTodos, pendingTodos, highPriorityTodos, filter])
+  }, [generateDynamicSuggestions])
 
   return (
     <>
@@ -236,29 +252,50 @@ export default function AIChat({
           {/* Dynamic Suggestions */}
           {messages.length === 0 && (
             <div className="p-4 border-b border-gray-100">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">
-                {totalTodos === 0 
-                  ? "Let's get started" 
-                  : `Smart suggestions for your ${totalTodos} todos`
-                }
-              </h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-700">
+                  {input.trim() && input.length >= 3
+                    ? `Suggestions for: "${input.slice(0, 30)}${input.length > 30 ? '...' : ''}"`
+                    : totalTodos === 0 
+                      ? "Let's get started" 
+                      : `Smart suggestions`
+                  }
+                </h4>
+                {loadingSuggestions && (
+                  <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-2">
-                {dynamicSuggestions.map((suggestion, index) => {
-                  const Icon = suggestion.icon
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handleSuggestionClick(suggestion.prompt)}
-                      className={`p-3 rounded-xl text-left border transition-all hover:shadow-md ${getCategoryColor(suggestion.category)}`}
-                    >
+                {loadingSuggestions ? (
+                  // Loading skeleton
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <div key={index} className="p-3 rounded-xl border border-gray-200 animate-pulse">
                       <div className="flex items-center gap-2 mb-1">
-                        <Icon size={14} />
-                        <span className="text-xs font-medium">{suggestion.label}</span>
+                        <div className="w-3 h-3 bg-gray-300 rounded"></div>
+                        <div className="w-16 h-3 bg-gray-300 rounded"></div>
                       </div>
-                      <p className="text-xs opacity-75 leading-tight line-clamp-2">{suggestion.prompt}</p>
-                    </button>
-                  )
-                })}
+                      <div className="w-full h-2 bg-gray-300 rounded mb-1"></div>
+                      <div className="w-3/4 h-2 bg-gray-300 rounded"></div>
+                    </div>
+                  ))
+                ) : (
+                  dynamicSuggestions.map((suggestion, index) => {
+                    const Icon = suggestion.icon
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestionClick(suggestion.prompt)}
+                        className={`p-3 rounded-xl text-left border transition-all hover:shadow-md ${getCategoryColor(suggestion.category)}`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Icon size={14} />
+                          <span className="text-xs font-medium">{suggestion.label}</span>
+                        </div>
+                        <p className="text-xs opacity-75 leading-tight line-clamp-2">{suggestion.prompt}</p>
+                      </button>
+                    )
+                  })
+                )}
               </div>
             </div>
           )}
