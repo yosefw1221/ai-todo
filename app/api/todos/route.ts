@@ -30,12 +30,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, description, priority } = body;
+    const { title, description, priority, checklist } = body;
 
     const result = await TodoController.createTodo({
       title,
       description,
       priority,
+      checklist,
     });
 
     if (!result.success) {

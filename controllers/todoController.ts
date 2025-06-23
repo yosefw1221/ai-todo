@@ -59,14 +59,19 @@ export class TodoController {
     try {
       await connectDB();
 
-      const { title, description, priority = 'medium', checklist = [] } = todoData;
+      const {
+        title,
+        description,
+        priority = 'medium',
+        checklist = [],
+      } = todoData;
 
       if (!title?.trim()) {
         return { success: false, error: 'Title is required' };
       }
 
       // Process checklist items
-      const processedChecklist: IChecklistItem[] = checklist.map(item => ({
+      const processedChecklist: IChecklistItem[] = checklist.map((item) => ({
         id: uuidv4(),
         text: item.text.trim(),
         completed: item.completed || false,
@@ -157,7 +162,10 @@ export class TodoController {
     }
   }
 
-  static async updateChecklistItem(todoId: string, itemUpdate: ChecklistItemUpdate) {
+  static async updateChecklistItem(
+    todoId: string,
+    itemUpdate: ChecklistItemUpdate
+  ) {
     try {
       await connectDB();
 
