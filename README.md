@@ -105,19 +105,26 @@ The chatbot can perform the following operations:
 ai-todo-app/
 ├── app/
 │   ├── api/
-│   │   ├── chat/route.ts          # AI chat endpoint
+│   │   ├── chat/route.ts          # AI chat endpoint (routes to ChatController)
 │   │   └── todos/
-│   │       ├── route.ts           # Todo CRUD operations
-│   │       └── [id]/route.ts      # Individual todo operations
+│   │       ├── route.ts           # Todo CRUD operations (routes to TodoController)
+│   │       └── [id]/route.ts      # Individual todo operations (routes to TodoController)
 │   ├── globals.css                # Global styles
-│   ├── layout.tsx                 # Root layout
+│   ├── layout.tsx                 # Root layout with DB initialization
 │   └── page.tsx                   # Main application page
+├── controllers/
+│   ├── chatController.ts          # AI chat business logic with toolcalls
+│   └── todoController.ts          # Todo business logic and database operations
 ├── lib/
-│   └── mongodb.ts                 # Database connection
+│   └── db.ts                      # Database connection with startup initialization
 ├── models/
-│   └── Todo.ts                    # Todo data model
+│   └── Todo.ts                    # Todo data model (Mongoose schema)
+├── services/
+│   └── todoService.ts             # Frontend API service layer
 ├── types/
-│   └── global.d.ts               # Global type definitions
+│   └── todo.ts                    # Todo type definitions
+├── utils/
+│   └── constants.ts               # App constants and configuration
 └── configuration files...
 ```
 
