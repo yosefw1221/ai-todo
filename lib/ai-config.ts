@@ -10,7 +10,7 @@ export { openai };
 
 // Default model configuration
 export const AI_CONFIG = {
-  model: 'gpt-3.5-turbo', // Default OpenAI model
+  model: 'gpt-4o-mini', // GPT-4o Mini: 128k context, fast, affordable
   temperature: 0.7,
   maxTokens: 2000,
   frequencyPenalty: 0,
@@ -18,9 +18,11 @@ export const AI_CONFIG = {
   topP: 1,
 } as const;
 
-// Available OpenAI models
+// Available OpenAI models with context limits
 export const OPENAI_MODELS = {
-  GPT35_TURBO: 'gpt-3.5-turbo',
-  GPT4: 'gpt-4',
-  GPT4_TURBO: 'gpt-4-turbo-preview',
+  GPT35_TURBO: 'gpt-3.5-turbo', // 16K tokens
+  GPT4: 'gpt-4', // 8K tokens
+  GPT4_TURBO: 'gpt-4-turbo', // 128K tokens
+  GPT4O: 'gpt-4o', // 128K tokens (best performance)
+  GPT4O_MINI: 'gpt-4o-mini', // 128K tokens (cost-effective)
 } as const;
