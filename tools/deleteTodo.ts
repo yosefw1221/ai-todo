@@ -22,7 +22,7 @@ export const deleteTodoTool = tool({
     // Enhance the response with more context
     const enhancedResult = {
       ...result,
-      deletedTodo: todoDetails.success ? todoDetails.todo : null,
+      deletedTodo: todoDetails.success ? todoDetails.data : null,
       action: 'delete',
       timestamp: new Date().toISOString(),
     };
