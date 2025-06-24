@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: 500 });
   }
 
-  return NextResponse.json({ todos: result.todos });
+  return NextResponse.json({ todos: result.data });
 }
 
 export async function POST(request: NextRequest) {
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    return NextResponse.json({ todo: result.todo }, { status: 201 });
+    return NextResponse.json({ todo: result.data }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       { error: 'Invalid request body' },
