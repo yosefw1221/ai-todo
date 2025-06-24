@@ -27,13 +27,13 @@ export const deleteMultipleTodosTool = tool({
       results.push({
         id,
         result,
-        todoDetails: todoDetails.success ? todoDetails.todo : null,
+        todoDetails: todoDetails.success ? todoDetails.data : null,
       });
 
       if (result.success) {
         successCount++;
         if (todoDetails.success) {
-          deletedTodos.push(todoDetails.todo);
+          deletedTodos.push(todoDetails.data);
         }
       } else {
         failCount++;
