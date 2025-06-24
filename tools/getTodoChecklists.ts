@@ -9,6 +9,6 @@ export const getTodoChecklistsTool = tool({
   }),
   execute: async ({ id }) => {
     const result = await TodoController.getTodoById(id);
-    return result.success ? result.todo?.checklist : [];
+    return result.success ? result.data?.checklist : [];
   },
 });
