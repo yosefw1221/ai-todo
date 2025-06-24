@@ -16,16 +16,10 @@ export const getTodosTool = tool({
       .describe('Filter todos by priority'),
   }),
   execute: async ({ filter, priority }) => {
-    console.log(
-      `AI fetching todos with filter: ${filter}, priority: ${priority}`
-    );
     const result = await TodoController.getAllTodos({
       filter,
       priority,
     });
-    console.log(
-      `Found ${result.success ? result.todos?.length || 0 : 0} todos`
-    );
     return result;
   },
 });
